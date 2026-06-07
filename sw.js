@@ -1,6 +1,6 @@
 /* Service worker: cache app shell so it works offline once installed.
    Amharic TTS still needs internet (Google Translate endpoint). */
-const CACHE = "theory-app-v3";
+const CACHE = "theory-app-v4";
 const ASSETS = [
   "./",
   "index.html",
@@ -23,8 +23,9 @@ self.addEventListener("activate", e => {
 
 self.addEventListener("fetch", e => {
   const url = new URL(e.request.url);
-  // Never cache / intercept Google Translate (TTS audio + translation API)
+  // Never cache / intercept Google Translate (TTS+API) or the image archive
   if (url.hostname.includes("translate.google")) return;
+  if (url.hostname.includes("web.archive.org")) return;
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request).catch(()=>cached))
   );

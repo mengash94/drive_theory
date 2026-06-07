@@ -4,74 +4,555 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0b1f3a">
+<!-- CRITICAL for Amharic audio: Google's TTS endpoint returns 404 when a site
+     Referer is sent. no-referrer makes the <audio> request anonymous -> 200 + audio. -->
+<meta name="referrer" content="no-referrer">
 <title>תאוריה לנהיגה — מאגר רשמי</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.svg">
 <style>
-:root{--bg:#0b1f3a;--bg2:#13294f;--card:#1c3a66;--text:#fff;--muted:#cdd9ee;--accent:#ffd400;--green:#1fbf4f;--red:#e23b3b;--line:#34538a}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;padding:0}body{font-family:"Segoe UI",Arial,"Noto Sans Ethiopic",sans-serif;background:var(--bg);color:var(--text);font-size:21px;line-height:1.5;font-weight:700;padding-bottom:112px;-webkit-text-size-adjust:100%}
-header{position:sticky;top:0;z-index:50;background:var(--bg2);padding:14px;border-bottom:3px solid var(--accent);text-align:center}header h1{margin:0;font-size:24px;color:var(--accent)}header .sub{font-size:14px;color:var(--muted);margin-top:3px;font-weight:600}main{padding:14px;max-width:760px;margin:0 auto}.view{display:none}.view.active{display:block}h2.section-title{font-size:26px;margin:4px 0 14px;text-align:center}.toggle,.opt-row,.nav-row{display:flex;gap:10px;margin-bottom:14px}.toggle button,.opt-row button,.nav-row button{flex:1;min-height:65px;border:3px solid var(--accent);background:transparent;color:var(--text);font-size:21px;font-weight:800;border-radius:14px;cursor:pointer}.toggle button.active,.opt-row button.active{background:var(--accent);color:#000}.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}.chips button{min-height:50px;padding:6px 16px;border-radius:25px;cursor:pointer;border:2px solid var(--line);background:var(--bg2);color:var(--text);font-size:18px;font-weight:800}.chips button.active{background:var(--accent);color:#000;border-color:var(--accent)}.card,.question-card,.note{background:var(--card);border:2px solid var(--line);border-radius:18px;padding:18px;margin:0 0 16px;display:flex;gap:14px;align-items:flex-start}.note{display:block;font-size:18px;font-weight:600;color:var(--muted)}.note b{color:var(--text)}.body{flex:1}.title{font-size:22px;color:var(--accent);margin:0 0 6px}.desc,.qtext{font-size:22px;font-weight:700;flex:1}.meta-line,.quiz-meta{font-size:16px;color:var(--muted);margin-bottom:10px;text-align:center}.quiz-meta{display:flex;justify-content:space-between}.speak{flex:none;min-width:72px;min-height:72px;border:none;border-radius:16px;background:var(--accent);color:#000;font-size:34px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center}.speak.loading{background:#9bb0d6}.answer-label{font-size:16px;color:var(--muted);margin:12px 0 4px}.answer-correct{background:var(--green);color:#fff;border-radius:12px;padding:12px 14px;font-size:21px;border:2px solid #fff}.option{width:100%;min-height:70px;display:flex;align-items:center;gap:12px;background:var(--bg2);border:3px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:14px;color:var(--text);font-size:22px;font-weight:700;cursor:pointer;text-align:start}.option .opt-text{flex:1}.option.correct{background:var(--green);border-color:#fff}.option.wrong{background:var(--red);border-color:#fff}.option:disabled{cursor:default}.option .opt-speak{flex:none;width:52px;height:52px;border-radius:12px;border:none;background:var(--accent);color:#000;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center}.next-btn{width:100%;min-height:78px;border:none;border-radius:18px;background:var(--accent);color:#000;font-size:25px;font-weight:900;cursor:pointer;margin-top:4px}.next-btn:disabled{background:#5b6e8c;color:#cdd9ee}.feedback{text-align:center;font-size:23px;margin:6px 0 14px;min-height:28px}.feedback.ok{color:var(--green)}.feedback.no{color:#ff9a9a}.score-box{text-align:center;font-size:21px;color:var(--accent);margin-bottom:12px}.setting{margin-bottom:24px}.setting .label{font-size:21px;margin-bottom:12px;color:var(--accent)}nav.bottom{position:fixed;bottom:0;left:0;right:0;z-index:60;display:flex;background:var(--bg2);border-top:3px solid var(--accent)}nav.bottom button{flex:1;min-height:90px;border:none;background:transparent;color:var(--muted);font-size:18px;font-weight:800;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}nav.bottom button .ico{font-size:30px}nav.bottom button.active{color:var(--accent);background:var(--bg)}
+  :root{
+    --bg:#0b1f3a; --bg2:#13294f; --card:#1c3a66;
+    --text:#ffffff; --muted:#cdd9ee; --accent:#ffd400;
+    --green:#1fbf4f; --red:#e23b3b; --line:#34538a;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:"Segoe UI",Arial,"Noto Sans Ethiopic",sans-serif;
+    background:var(--bg); color:var(--text);
+    font-size:21px; line-height:1.5; font-weight:700;
+    padding-bottom:112px; -webkit-text-size-adjust:100%;
+  }
+  header{
+    position:sticky; top:0; z-index:50; background:var(--bg2);
+    padding:14px; border-bottom:3px solid var(--accent); text-align:center;
+  }
+  header h1{margin:0; font-size:24px; color:var(--accent);}
+  header .sub{font-size:14px; color:var(--muted); margin-top:3px; font-weight:600;}
+  main{padding:14px; max-width:760px; margin:0 auto;}
+  .view{display:none;} .view.active{display:block;}
+  h2.section-title{font-size:26px; margin:4px 0 14px; text-align:center;}
+
+  /* toggle + chips */
+  .toggle{display:flex; gap:10px; margin-bottom:14px;}
+  .toggle button{
+    flex:1; min-height:65px; border:3px solid var(--accent); background:transparent;
+    color:var(--text); font-size:21px; font-weight:800; border-radius:14px; cursor:pointer;
+  }
+  .toggle button.active{background:var(--accent); color:#000;}
+  .chips{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px;}
+  .chips button{
+    min-height:50px; padding:6px 16px; border-radius:25px; cursor:pointer;
+    border:2px solid var(--line); background:var(--bg2); color:var(--text);
+    font-size:18px; font-weight:800;
+  }
+  .chips button.active{background:var(--accent); color:#000; border-color:var(--accent);}
+
+  /* cards */
+  .card{
+    background:var(--card); border:2px solid var(--line); border-radius:18px;
+    padding:18px; margin:0 0 16px; display:flex; gap:14px; align-items:flex-start;
+  }
+  .card .body{flex:1; min-width:0;}
+  .card .title{font-size:22px; color:var(--accent); margin:0 0 6px;}
+  .card .desc{font-size:21px; font-weight:600;}
+  .meta-line{font-size:16px; color:var(--muted); margin-bottom:10px; text-align:center;}
+
+  .speak{
+    flex:none; min-width:72px; min-height:72px; border:none; border-radius:16px;
+    background:var(--accent); color:#000; font-size:34px; font-weight:900; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .speak:active{background:#e6bf00;}
+  .speak.loading{background:#9bb0d6;}
+
+  .sign-wrap{flex:none; width:92px; height:92px;}
+  .sign-wrap svg{width:92px; height:92px; display:block;}
+  .q-img{display:block; width:100%; max-width:340px; margin:14px auto; border-radius:14px;
+    background:#fff; padding:8px; border:2px solid var(--line);}
+
+  /* study answer */
+  .answer-label{font-size:16px; color:var(--muted); margin:12px 0 4px;}
+  .answer-correct{
+    background:var(--green); color:#fff; border-radius:12px; padding:12px 14px;
+    font-size:21px; border:2px solid #fff;
+  }
+  .nav-row{display:flex; gap:10px; margin-top:6px;}
+  .nav-row button{
+    flex:1; min-height:70px; border:none; border-radius:16px; cursor:pointer;
+    background:var(--accent); color:#000; font-size:22px; font-weight:900;
+  }
+  .nav-row button:disabled{background:#5b6e8c; color:#cdd9ee;}
+
+  /* quiz */
+  .quiz-meta{display:flex; justify-content:space-between; font-size:17px; color:var(--muted); margin-bottom:10px;}
+  .question-card{
+    background:var(--card); border:2px solid var(--line); border-radius:18px;
+    padding:20px; margin-bottom:16px; display:flex; gap:14px; align-items:flex-start;
+  }
+  .question-card .qtext{flex:1; font-size:24px;}
+  .option{
+    width:100%; min-height:70px; display:flex; align-items:center; gap:12px;
+    background:var(--bg2); border:3px solid var(--line); border-radius:16px;
+    padding:14px 16px; margin-bottom:14px; color:var(--text); font-size:22px;
+    font-weight:700; cursor:pointer; text-align:start;
+  }
+  .option .opt-text{flex:1;}
+  .option.correct{background:var(--green); border-color:#fff; color:#fff;}
+  .option.wrong{background:var(--red); border-color:#fff; color:#fff;}
+  .option:disabled{cursor:default;}
+  .option .opt-speak{
+    flex:none; width:52px; height:52px; border-radius:12px; border:none;
+    background:var(--accent); color:#000; font-size:22px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .next-btn{
+    width:100%; min-height:78px; border:none; border-radius:18px;
+    background:var(--accent); color:#000; font-size:25px; font-weight:900; cursor:pointer; margin-top:4px;
+  }
+  .next-btn:disabled{background:#5b6e8c; color:#cdd9ee;}
+  .feedback{text-align:center; font-size:23px; margin:6px 0 14px; min-height:28px;}
+  .feedback.ok{color:var(--green);} .feedback.no{color:#ff9a9a;}
+  .score-box{text-align:center; font-size:21px; color:var(--accent); margin-bottom:12px;}
+
+  /* settings */
+  .setting{margin-bottom:24px;}
+  .setting .label{font-size:21px; margin-bottom:12px; color:var(--accent);}
+  .opt-row{display:flex; gap:12px;}
+  .opt-row button{
+    flex:1; min-height:74px; border-radius:14px; cursor:pointer; border:3px solid var(--accent);
+    background:transparent; color:var(--text); font-size:21px; font-weight:800; line-height:1.2;
+  }
+  .opt-row button.active{background:var(--accent); color:#000;}
+  .note{background:var(--card); border:2px solid var(--line); border-radius:16px; padding:16px; font-size:18px; font-weight:600; color:var(--muted);}
+  .note b{color:var(--text);}
+
+  nav.bottom{
+    position:fixed; bottom:0; left:0; right:0; z-index:60; display:flex;
+    background:var(--bg2); border-top:3px solid var(--accent);
+  }
+  nav.bottom button{
+    flex:1; min-height:90px; border:none; background:transparent; color:var(--muted);
+    font-size:18px; font-weight:800; cursor:pointer; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:4px;
+  }
+  nav.bottom button .ico{font-size:30px;}
+  nav.bottom button.active{color:var(--accent); background:var(--bg);}
 </style>
 </head>
 <body>
-<header><h1>לימוד תאוריה</h1><div class="sub">מאגר השאלות הרשמי — משרד התחבורה</div></header>
+<header>
+  <h1>לימוד תאוריה</h1>
+  <div class="sub">מאגר רשמי — משרד התחבורה · רכב פרטי (B)</div>
+</header>
+
 <main>
-<section id="view-learn" class="view active"><h2 class="section-title">לימוד</h2><div class="toggle"><button id="tabStudy" class="active" onclick="setLearnMode('study')">שאלות לימוד</button><button id="tabSigns" onclick="setLearnMode('signs')">תמרורים</button></div><div id="learnChips" class="chips"></div><div id="learnBody"></div></section>
-<section id="view-practice" class="view"><h2 class="section-title">תרגול (בוחן)</h2><div id="practiceChips" class="chips"></div><div class="score-box" id="scoreBox"></div><div class="quiz-meta"><span id="qCounter"></span><span id="qCategory"></span></div><div class="question-card"><button class="speak" id="qSpeak" onclick="narrateEl(this)">🔊</button><div class="qtext" id="questionText"></div></div><div id="optionsList"></div><div class="feedback" id="feedback"></div><button class="next-btn" id="nextBtn" onclick="nextQuestion()" disabled>לשאלה הבאה</button></section>
-<section id="view-settings" class="view"><h2 class="section-title">הגדרות</h2><div class="setting"><div class="label">שפת הקראה (הכתב תמיד בעברית)</div><div class="opt-row"><button id="langHe" class="active" onclick="setLanguage('he')">עברית 🔊</button><button id="langAm" onclick="setLanguage('am')">אמהרית 🔊<br><span style="font-size:15px">አማርኛ</span></button></div></div><div class="setting"><div class="label">מהירות קריאה</div><div class="opt-row"><button id="speedSlow" onclick="setSpeed('slow')">איטי</button><button id="speedNormal" class="active" onclick="setSpeed('normal')">רגיל</button></div></div><div class="note" id="aboutNote"></div></section>
+  <!-- LEARN -->
+  <section id="view-learn" class="view active">
+    <h2 class="section-title">לימוד</h2>
+    <div class="toggle">
+      <button id="tabStudy" class="active" onclick="setLearnMode('study')">שאלות לימוד</button>
+      <button id="tabSigns" onclick="setLearnMode('signs')">תמרורים</button>
+    </div>
+    <div id="learnChips" class="chips"></div>
+    <div id="learnBody"></div>
+  </section>
+
+  <!-- PRACTICE -->
+  <section id="view-practice" class="view">
+    <h2 class="section-title">תרגול (בוחן)</h2>
+    <div id="practiceChips" class="chips"></div>
+    <div class="score-box" id="scoreBox"></div>
+    <div class="quiz-meta">
+      <span id="qCounter"></span>
+      <span id="qCategory"></span>
+    </div>
+    <div class="question-card">
+      <button class="speak" id="qSpeak" onclick="narrateEl(this)">🔊</button>
+      <div class="qtext" id="questionText"></div>
+    </div>
+    <div id="qImgWrap"></div>
+    <div id="optionsList"></div>
+    <div class="feedback" id="feedback"></div>
+    <button class="next-btn" id="nextBtn" onclick="nextQuestion()" disabled>לשאלה הבאה</button>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="view-settings" class="view">
+    <h2 class="section-title">הגדרות</h2>
+    <div class="setting">
+      <div class="label">שפת הקראה (הכתב תמיד בעברית)</div>
+      <div class="opt-row">
+        <button id="langHe" class="active" onclick="setLanguage('he')">עברית 🔊</button>
+        <button id="langAm" onclick="setLanguage('am')">אמהרית 🔊<br><span style="font-size:15px;">አማርኛ</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="label">מהירות קריאה</div>
+      <div class="opt-row">
+        <button id="speedSlow" onclick="setSpeed('slow')">איטי</button>
+        <button id="speedNormal" class="active" onclick="setSpeed('normal')">רגיל</button>
+      </div>
+    </div>
+    <div class="note" id="aboutNote"></div>
+  </section>
 </main>
-<nav class="bottom"><button id="navLearn" class="active" onclick="showView('learn')"><span class="ico">📖</span><span>לימוד</span></button><button id="navPractice" onclick="showView('practice')"><span class="ico">✏️</span><span>תרגול</span></button><button id="navSettings" onclick="showView('settings')"><span class="ico">⚙️</span><span>הגדרות</span></button></nav>
+
+<nav class="bottom">
+  <button id="navLearn" class="active" onclick="showView('learn')"><span class="ico">📖</span><span>לימוד</span></button>
+  <button id="navPractice" onclick="showView('practice')"><span class="ico">✏️</span><span>תרגול</span></button>
+  <button id="navSettings" onclick="showView('settings')"><span class="ico">⚙️</span><span>הגדרות</span></button>
+</nav>
+
 <audio id="ttsAudio" style="display:none"></audio>
+
+<!-- Official Ministry of Transport question bank (1,203 text questions) -->
 <script src="questions.js"></script>
 <script>
-const CAT_LABELS={all:"הכל",laws:"חוקי התנועה",safety:"בטיחות",vehicle:"הכרת הרכב",signs:"תמרורים"};
-const CAT_ORDER=["all","laws","safety","vehicle","signs"];
-const QUESTIONS=window.OFFICIAL_QUESTIONS||[];
-const SIGNS=[
-{t:"עצור (STOP)",d:"חובה לעצור עצירה מוחלטת לפני קו העצירה, ולתת זכות קדימה לכל התנועה."},
-{t:"תן זכות קדימה",d:"האט ותן זכות קדימה לתנועה בדרך החוצה לפני הכניסה אליה."},
-{t:"דרך עם זכות קדימה",d:"אתה נמצא בדרך שיש לה זכות קדימה על פני הדרכים החוצות."},
-{t:"הגבלת מהירות",d:"אסור לנסוע מהר מהמהירות הרשומה בתמרור."},
-{t:"אין כניסה",d:"הכניסה לרכב אסורה בכיוון זה."},
-{t:"אסור לעקוף",d:"אסור לעקוף רכב מנועי בקטע דרך זה."},
-{t:"אין חניה",d:"חניית רכב אסורה במקום זה."},
-{t:"זהירות מעבר חצייה",d:"לפניך מעבר חצייה להולכי רגל. האט והיה מוכן לעצור."},
-{t:"זהירות ילדים",d:"קרבת בית ספר או גן ילדים. סע לאט והיזהר מילדים."},
-{t:"עיקול בדרך",d:"לפניך עיקול חד. האט והתאם את המהירות."},
-{t:"זהירות רמזור",d:"לפניך צומת מרומזר. היה מוכן לעצור באור אדום."},
-{t:"פס האטה / מהמורה",d:"לפניך מהמורה או פס האטה. האט מאוד."},
-{t:"כיכר תנועה",d:"סע בכיוון החצים ותן זכות קדימה לרכב שכבר בכיכר."},
-{t:"דרך חד-סטרית",d:"התנועה מותרת בכיוון אחד בלבד, לפי החץ."},
-{t:"מקום חניה",d:"מקום המותר לחניית רכב."}
+/* =====================================================================
+   CATEGORIES
+   ===================================================================== */
+const CAT_LABELS = { all:"הכל", laws:"חוקי התנועה", safety:"בטיחות", vehicle:"הכרת הרכב", signs:"תמרורים" };
+const CAT_ORDER  = ["all","laws","safety","vehicle","signs"];
+const QUESTIONS  = window.OFFICIAL_QUESTIONS || [];
+
+/* =====================================================================
+   STANDARD SIGNS (vector illustrations for visual learning)
+   ===================================================================== */
+function svgStop(){return `<svg viewBox="0 0 100 100"><polygon points="30,5 70,5 95,30 95,70 70,95 30,95 5,70 5,30" fill="#d11" stroke="#fff" stroke-width="4"/><text x="50" y="60" font-size="22" fill="#fff" text-anchor="middle" font-family="Arial" font-weight="bold">STOP</text></svg>`;}
+function svgYield(){return `<svg viewBox="0 0 100 100"><polygon points="50,92 6,12 94,12" fill="#fff" stroke="#d11" stroke-width="8"/></svg>`;}
+function svgSpeed50(){return `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="#fff" stroke="#d11" stroke-width="9"/><text x="50" y="63" font-size="40" fill="#000" text-anchor="middle" font-family="Arial" font-weight="bold">50</text></svg>`;}
+function svgNoEntry(){return `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="#d11" stroke="#fff" stroke-width="5"/><rect x="20" y="42" width="60" height="16" fill="#fff"/></svg>`;}
+function svgNoParking(){return `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="#1a52b8" stroke="#d11" stroke-width="8"/><line x1="20" y1="20" x2="80" y2="80" stroke="#d11" stroke-width="8"/><text x="50" y="62" font-size="34" fill="#fff" text-anchor="middle" font-family="Arial" font-weight="bold">P</text></svg>`;}
+function svgRoundabout(){return `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="#1a52b8" stroke="#fff" stroke-width="4"/><path d="M50 28 a22 22 0 1 0 18 10" fill="none" stroke="#fff" stroke-width="7"/><polygon points="64,30 74,40 56,44" fill="#fff"/></svg>`;}
+function svgPedestrian(){return `<svg viewBox="0 0 100 100"><polygon points="50,6 94,94 6,94" fill="#fff" stroke="#d11" stroke-width="7"/><circle cx="50" cy="38" r="6" fill="#000"/><path d="M50 45 l0 22 M50 52 l-10 8 M50 52 l10 8 M50 67 l-7 18 M50 67 l7 18" stroke="#000" stroke-width="4" fill="none"/></svg>`;}
+function svgChildren(){return `<svg viewBox="0 0 100 100"><polygon points="50,6 94,94 6,94" fill="#fff" stroke="#d11" stroke-width="7"/><circle cx="40" cy="42" r="5" fill="#000"/><circle cx="60" cy="46" r="5" fill="#000"/><path d="M40 48 l0 16 M60 52 l0 16 M40 64 l-6 14 M40 64 l6 12 M60 68 l-6 12 M60 68 l6 12" stroke="#000" stroke-width="3" fill="none"/></svg>`;}
+function svgCurve(){return `<svg viewBox="0 0 100 100"><polygon points="50,6 94,94 6,94" fill="#fff" stroke="#d11" stroke-width="7"/><path d="M42 84 C42 60 62 56 62 40 L62 26" fill="none" stroke="#000" stroke-width="7"/><polygon points="52,30 62,16 72,30" fill="#000"/></svg>`;}
+function svgTrafficLight(){return `<svg viewBox="0 0 100 100"><polygon points="50,6 94,94 6,94" fill="#fff" stroke="#d11" stroke-width="7"/><rect x="40" y="34" width="20" height="42" rx="6" fill="#000"/><circle cx="50" cy="44" r="5" fill="#d11"/><circle cx="50" cy="56" r="5" fill="#fd0"/><circle cx="50" cy="68" r="5" fill="#1c3"/></svg>`;}
+function svgOneWay(){return `<svg viewBox="0 0 100 100"><rect x="8" y="30" width="84" height="40" rx="6" fill="#1a52b8" stroke="#fff" stroke-width="3"/><polygon points="20,50 60,30 60,42 84,42 84,58 60,58 60,70" fill="#fff"/></svg>`;}
+function svgParking(){return `<svg viewBox="0 0 100 100"><rect x="14" y="14" width="72" height="72" rx="8" fill="#1a52b8" stroke="#fff" stroke-width="4"/><text x="50" y="68" font-size="48" fill="#fff" text-anchor="middle" font-family="Arial" font-weight="bold">P</text></svg>`;}
+function svgPriority(){return `<svg viewBox="0 0 100 100"><polygon points="50,6 90,50 50,94 10,50" fill="#fd0" stroke="#fff" stroke-width="5"/><polygon points="50,26 70,50 50,74 30,50" fill="#fff" stroke="#000" stroke-width="2"/></svg>`;}
+function svgNoOvertake(){return `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="#fff" stroke="#d11" stroke-width="8"/><rect x="30" y="34" width="16" height="34" rx="3" fill="#000"/><rect x="54" y="34" width="16" height="34" rx="3" fill="#d11"/></svg>`;}
+function svgBump(){return `<svg viewBox="0 0 100 100"><polygon points="50,6 94,94 6,94" fill="#fff" stroke="#d11" stroke-width="7"/><path d="M22 78 q28 -42 56 0" fill="none" stroke="#000" stroke-width="8"/></svg>`;}
+
+const SIGNS = [
+  {svg:svgStop,t:"עצור (STOP)",d:"חובה לעצור עצירה מוחלטת לפני קו העצירה, ולתת זכות קדימה לכל התנועה."},
+  {svg:svgYield,t:"תן זכות קדימה",d:"האט ותן זכות קדימה לתנועה בדרך החוצה לפני הכניסה אליה."},
+  {svg:svgPriority,t:"דרך עם זכות קדימה",d:"אתה נמצא בדרך שיש לה זכות קדימה על פני הדרכים החוצות."},
+  {svg:svgSpeed50,t:"הגבלת מהירות",d:"אסור לנסוע מהר מהמהירות הרשומה בתמרור."},
+  {svg:svgNoEntry,t:"אין כניסה",d:"הכניסה לרכב אסורה בכיוון זה."},
+  {svg:svgNoOvertake,t:"אסור לעקוף",d:"אסור לעקוף רכב מנועי בקטע דרך זה."},
+  {svg:svgNoParking,t:"אין חניה",d:"חניית רכב אסורה במקום זה."},
+  {svg:svgPedestrian,t:"זהירות מעבר חצייה",d:"לפניך מעבר חצייה להולכי רגל. האט והיה מוכן לעצור."},
+  {svg:svgChildren,t:"זהירות ילדים",d:"קרבת בית ספר או גן ילדים. סע לאט והיזהר מילדים."},
+  {svg:svgCurve,t:"עיקול בדרך",d:"לפניך עיקול חד. האט והתאם את המהירות."},
+  {svg:svgTrafficLight,t:"זהירות רמזור",d:"לפניך צומת מרומזר. היה מוכן לעצור באור אדום."},
+  {svg:svgBump,t:"פס האטה / מהמורה",d:"לפניך מהמורה או פס האטה. האט מאוד."},
+  {svg:svgRoundabout,t:"כיכר תנועה",d:"סע בכיוון החצים ותן זכות קדימה לרכב שכבר בכיכר."},
+  {svg:svgOneWay,t:"דרך חד-סטרית",d:"התנועה מותרת בכיוון אחד בלבד, לפי החץ."},
+  {svg:svgParking,t:"מקום חניה",d:"מקום המותר לחניית רכב."}
 ];
-let state={audioLang:localStorage.getItem("audioLang")||"he",speed:localStorage.getItem("speed")||"normal",learnMode:"study",studyCat:"all",studyIndex:0,practiceCat:"all",pool:[],pIndex:0,answered:false,score:0};
-const ttsAudio=document.getElementById("ttsAudio");let speakToken=0;const amCache={};
-function rate(){return state.speed==="slow"?0.7:1}
-function stopAllAudio(){speakToken++;if("speechSynthesis" in window){try{speechSynthesis.cancel()}catch(e){}}try{ttsAudio.onended=null;ttsAudio.pause();ttsAudio.removeAttribute("src");ttsAudio.load()}catch(e){}document.querySelectorAll(".speak.loading").forEach(b=>b.classList.remove("loading"))}
-function speakHebrew(text){if(!("speechSynthesis" in window))return;const u=new SpeechSynthesisUtterance(text);u.lang="he-IL";u.rate=rate();const v=speechSynthesis.getVoices().find(v=>/he|iw/i.test(v.lang));if(v)u.voice=v;speechSynthesis.speak(u)}
-function chunkText(t,max=180){const words=String(t).split(/\s+/),out=[];let cur="";for(const w of words){if((cur+" "+w).trim().length>max){if(cur)out.push(cur.trim());cur=w}else cur=(cur+" "+w).trim()}if(cur)out.push(cur.trim());return out}
-function playAmharic(chunks,token){let i=0;(function next(){if(token!==speakToken||i>=chunks.length)return;const c=chunks[i++];ttsAudio.src="https://translate.google.com/translate_tts?ie=UTF-8&tl=am&client=tw-ob&q="+encodeURIComponent(c);ttsAudio.playbackRate=rate();ttsAudio.onended=next;const p=ttsAudio.play();if(p&&p.catch)p.catch(err=>console.error("Amharic audio play failed:",err))})()}
-function translateToAmharic(he){if(amCache[he])return Promise.resolve(amCache[he]);const url="https://translate.googleapis.com/translate_a/single?client=gtx&sl=he&tl=am&dt=t&q="+encodeURIComponent(he);return fetch(url).then(r=>{if(!r.ok)throw new Error("Translate failed: "+r.status);return r.json()}).then(j=>{const am=(j[0]||[]).map(s=>s[0]).join("");if(!am)throw new Error("Empty Amharic translation");amCache[he]=am;return am})}
-function narrate(heText,btn){stopAllAudio();if(!heText)return;const token=speakToken;if(state.audioLang==="am"){if(btn)btn.classList.add("loading");translateToAmharic(heText).then(am=>{if(btn)btn.classList.remove("loading");if(token!==speakToken)return;playAmharic(chunkText(am),token)}).catch(err=>{console.error("Amharic failed:",err);if(btn)btn.classList.remove("loading");if(token===speakToken)alert("האמהרית לא נטענה. לחץ בהגדרות על 'הכן את כל ההקראה באמהרית' ונסה שוב.")})}else speakHebrew(heText)}
-function narrateEl(el){narrate(el.dataset.he,el)}
-function escapeHtml(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
-function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
-function catIndices(cat){const idx=[];QUESTIONS.forEach((q,i)=>{if(cat==="all"||q.cat===cat)idx.push(i)});return idx}
-function renderChips(id,current,onPick){const c=document.getElementById(id);c.innerHTML="";CAT_ORDER.forEach(cat=>{const n=catIndices(cat).length;if(n===0)return;const b=document.createElement("button");b.textContent=CAT_LABELS[cat]+" ("+n+")";if(cat===current)b.classList.add("active");b.onclick=()=>onPick(cat);c.appendChild(b)})}
-function setLearnMode(m){stopAllAudio();state.learnMode=m;document.getElementById("tabStudy").classList.toggle("active",m==="study");document.getElementById("tabSigns").classList.toggle("active",m==="signs");renderLearn()}
-function renderLearn(){const chips=document.getElementById("learnChips"),body=document.getElementById("learnBody");if(state.learnMode==="signs"){chips.style.display="none";let html='<div class="meta-line">תמרורים נפוצים — לימוד</div>';SIGNS.forEach(s=>{const speakStr=(s.t+". "+s.d).replace(/"/g,"'");html+=`<div class="card"><button class="speak" onclick="narrateEl(this)" data-he="${escapeHtml(speakStr)}">🔊</button><div class="body"><div class="title">${escapeHtml(s.t)}</div><div class="desc">${escapeHtml(s.d)}</div></div></div>`});body.innerHTML=html;return}chips.style.display="flex";renderChips("learnChips",state.studyCat,cat=>{stopAllAudio();state.studyCat=cat;state.studyIndex=0;renderLearn()});const idx=catIndices(state.studyCat);if(idx.length===0){body.innerHTML='<div class="note">אין שאלות בקטגוריה.</div>';return}if(state.studyIndex>=idx.length)state.studyIndex=0;const q=QUESTIONS[idx[state.studyIndex]],correct=q.o[q.c],speakStr=(q.q+". התשובה הנכונה: "+correct).replace(/"/g,"'");body.innerHTML=`<div class="meta-line">${state.studyIndex+1} מתוך ${idx.length} · ${CAT_LABELS[q.cat]} · שאלה רשמית ${q.id}</div><div class="card"><button class="speak" onclick="narrateEl(this)" data-he="${escapeHtml(speakStr)}">🔊</button><div class="body"><div class="desc">${escapeHtml(q.q)}</div><div class="answer-label">התשובה הנכונה:</div><div class="answer-correct">${escapeHtml(correct)}</div></div></div><div class="nav-row"><button onclick="studyStep(-1)" ${state.studyIndex===0?"disabled":""}>← הקודם</button><button onclick="studyStep(1)" ${state.studyIndex>=idx.length-1?"disabled":""}>הבא →</button></div>`}
-function studyStep(d){stopAllAudio();const idx=catIndices(state.studyCat);state.studyIndex=Math.min(Math.max(0,state.studyIndex+d),idx.length-1);renderLearn();scrollTo(0,0)}
-function startPractice(cat){stopAllAudio();state.practiceCat=cat;state.pool=shuffle(catIndices(cat));state.pIndex=0;state.score=0;renderQuiz()}
-function renderQuiz(){renderChips("practiceChips",state.practiceCat,startPractice);if(!state.pool.length){document.getElementById("optionsList").innerHTML='<div class="note">אין שאלות.</div>';return}const q=QUESTIONS[state.pool[state.pIndex]];state.answered=false;document.getElementById("scoreBox").textContent="ניקוד: "+state.score+" מתוך "+state.pIndex;document.getElementById("qCounter").textContent="שאלה "+(state.pIndex+1)+" מתוך "+state.pool.length;document.getElementById("qCategory").textContent=CAT_LABELS[q.cat];document.getElementById("questionText").textContent=q.q;document.getElementById("qSpeak").dataset.he=q.q;document.getElementById("feedback").textContent="";document.getElementById("feedback").className="feedback";document.getElementById("nextBtn").disabled=true;let html="";q.o.forEach((opt,i)=>{html+=`<button class="option" data-i="${i}" onclick="answer(${i})"><span class="opt-text">${escapeHtml(opt)}</span><span class="opt-speak" onclick="event.stopPropagation();narrateEl(this)" data-he="${escapeHtml(opt.replace(/"/g,"'"))}">🔊</span></button>`});document.getElementById("optionsList").innerHTML=html}
-function answer(i){if(state.answered)return;state.answered=true;const q=QUESTIONS[state.pool[state.pIndex]];document.querySelectorAll("#optionsList .option").forEach(b=>{const bi=parseInt(b.dataset.i,10);b.disabled=true;if(bi===q.c)b.classList.add("correct");if(bi===i&&i!==q.c)b.classList.add("wrong")});const fb=document.getElementById("feedback");if(i===q.c){state.score++;fb.textContent="נכון! כל הכבוד";fb.className="feedback ok"}else{fb.textContent="לא נכון. התשובה הנכונה מסומנת בירוק";fb.className="feedback no"}document.getElementById("scoreBox").textContent="ניקוד: "+state.score+" מתוך "+(state.pIndex+1);document.getElementById("nextBtn").disabled=false}
-function nextQuestion(){stopAllAudio();state.pIndex++;if(state.pIndex>=state.pool.length){state.pool=shuffle(state.pool);state.pIndex=0;state.score=0}renderQuiz();scrollTo(0,0)}
-function showView(name){stopAllAudio();["learn","practice","settings"].forEach(v=>{document.getElementById("view-"+v).classList.toggle("active",v===name);document.getElementById("nav"+v.charAt(0).toUpperCase()+v.slice(1)).classList.toggle("active",v===name)});scrollTo(0,0)}
-function setLanguage(lang){state.audioLang=lang;localStorage.setItem("audioLang",lang);document.getElementById("langHe").classList.toggle("active",lang==="he");document.getElementById("langAm").classList.toggle("active",lang==="am")}
-function setSpeed(s){state.speed=s;localStorage.setItem("speed",s);document.getElementById("speedSlow").classList.toggle("active",s==="slow");document.getElementById("speedNormal").classList.toggle("active",s==="normal")}
-function init(){document.getElementById("langHe").classList.toggle("active",state.audioLang==="he");document.getElementById("langAm").classList.toggle("active",state.audioLang==="am");document.getElementById("speedSlow").classList.toggle("active",state.speed==="slow");document.getElementById("speedNormal").classList.toggle("active",state.speed==="normal");document.getElementById("aboutNote").innerHTML="<b>"+QUESTIONS.length+" שאלות רשמיות</b> ממאגר משרד התחבורה. כל הכתב בעברית; כפתור 🔊 מקריא בעברית, ובבחירת אמהרית מקריא בתרגום אוטומטי שנשמר במכשיר לאחר הכנה ראשונית.";if(QUESTIONS.length===0){document.getElementById("learnBody").innerHTML='<div class="note">שגיאה: קובץ השאלות לא נטען.</div>';return}setLearnMode("study");startPractice("all")}
+
+/* =====================================================================
+   STATE
+   ===================================================================== */
+let state = {
+  audioLang: localStorage.getItem("audioLang") || "he",
+  speed: localStorage.getItem("speed") || "normal",
+  learnMode: "study",
+  studyCat: "all",
+  studyIndex: 0,
+  practiceCat: "all",
+  pool: [],        // array of question indices (shuffled) for current practice category
+  pIndex: 0,
+  answered: false,
+  score: 0
+};
+
+/* =====================================================================
+   AUDIO ENGINE  (Hebrew = Web Speech, Amharic = translate + Google TTS)
+   ===================================================================== */
+const ttsAudio = document.getElementById("ttsAudio");
+try{ ttsAudio.referrerPolicy = "no-referrer"; }catch(e){}
+let speakToken = 0;
+const AM_KEY = "amCacheV1";
+const amCache = (()=>{ try{ return JSON.parse(localStorage.getItem(AM_KEY))||{}; }catch(e){ return {}; } })();
+let amSaveTimer=null;
+function amSave(){ clearTimeout(amSaveTimer); amSaveTimer=setTimeout(()=>{ try{ localStorage.setItem(AM_KEY,JSON.stringify(amCache)); }catch(e){} },800); }
+
+function rate(){ return state.speed === "slow" ? 0.7 : 1.0; }
+
+function stopAllAudio(){
+  speakToken++;
+  if("speechSynthesis" in window){ try{ speechSynthesis.cancel(); }catch(e){} }
+  try{ ttsAudio.onended=null; ttsAudio.pause(); ttsAudio.removeAttribute("src"); ttsAudio.load(); }catch(e){}
+  document.querySelectorAll(".speak.loading").forEach(b=>b.classList.remove("loading"));
+}
+
+function speakHebrew(text){
+  if(!("speechSynthesis" in window)) return;
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "he-IL"; u.rate = rate();
+  const v = speechSynthesis.getVoices().find(v=>/he|iw/i.test(v.lang));
+  if(v) u.voice = v;
+  speechSynthesis.speak(u);
+}
+
+function chunkText(t, max){
+  max = max || 180;
+  const words = String(t).split(/\s+/); const out=[]; let cur="";
+  for(const w of words){
+    if((cur+" "+w).trim().length > max){ if(cur) out.push(cur.trim()); cur=w; }
+    else cur=(cur+" "+w).trim();
+  }
+  if(cur) out.push(cur.trim());
+  return out;
+}
+
+function playAmharic(chunks, token){
+  let i=0;
+  (function next(){
+    if(token!==speakToken || i>=chunks.length) return;
+    const c=chunks[i++];
+    ttsAudio.src="https://translate.google.com/translate_tts?ie=UTF-8&tl=am&client=tw-ob&q="+encodeURIComponent(c);
+    ttsAudio.playbackRate=rate();
+    ttsAudio.onended=next;
+    const p=ttsAudio.play(); if(p&&p.catch) p.catch(()=>{});
+  })();
+}
+
+function translateToAmharic(he){
+  if(amCache[he]) return Promise.resolve(amCache[he]);
+  const url="https://translate.googleapis.com/translate_a/single?client=gtx&sl=iw&tl=am&dt=t&q="+encodeURIComponent(he);
+  return fetch(url).then(r=>r.json()).then(j=>{
+    const am=(j[0]||[]).map(s=>s[0]).join("");
+    amCache[he]=am; amSave(); return am;
+  });
+}
+
+function narrate(heText, btn){
+  stopAllAudio();
+  if(!heText) return;
+  const token=speakToken;
+  if(state.audioLang==="am"){
+    if(btn) btn.classList.add("loading");
+    translateToAmharic(heText).then(am=>{
+      if(btn) btn.classList.remove("loading");
+      if(token!==speakToken) return;
+      playAmharic(chunkText(am), token);
+    }).catch(()=>{
+      if(btn) btn.classList.remove("loading");
+      if(token===speakToken) speakHebrew(heText);  // fallback so something is heard
+    });
+  } else {
+    speakHebrew(heText);
+  }
+}
+function narrateEl(el){ narrate(el.dataset.he, el); }
+
+/* =====================================================================
+   HELPERS
+   ===================================================================== */
+function escapeHtml(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function catIndices(cat){
+  const idx=[];
+  QUESTIONS.forEach((q,i)=>{ if(cat==="all"||q.cat===cat) idx.push(i); });
+  return idx;
+}
+
+/* =====================================================================
+   CHIPS
+   ===================================================================== */
+function renderChips(containerId, current, onPick){
+  const c=document.getElementById(containerId);
+  c.innerHTML="";
+  CAT_ORDER.forEach(cat=>{
+    const n=catIndices(cat).length;
+    if(n===0) return;
+    const b=document.createElement("button");
+    b.textContent=CAT_LABELS[cat]+" ("+n+")";
+    if(cat===current) b.classList.add("active");
+    b.onclick=()=>onPick(cat);
+    c.appendChild(b);
+  });
+}
+
+/* =====================================================================
+   LEARN
+   ===================================================================== */
+function setLearnMode(m){
+  stopAllAudio();
+  state.learnMode=m;
+  document.getElementById("tabStudy").classList.toggle("active", m==="study");
+  document.getElementById("tabSigns").classList.toggle("active", m==="signs");
+  renderLearn();
+}
+
+function renderLearn(){
+  const chips=document.getElementById("learnChips");
+  const body=document.getElementById("learnBody");
+  if(state.learnMode==="signs"){
+    chips.style.display="none";
+    let html='<div class="meta-line">תמרורים נפוצים — איור להמחשה ולימוד</div>';
+    SIGNS.forEach(s=>{
+      const speakStr=(s.t+". "+s.d).replace(/"/g,"'");
+      html+=`<div class="card">
+        <button class="speak" onclick="narrateEl(this)" data-he="${escapeHtml(speakStr)}">🔊</button>
+        <div class="body"><div class="title">${escapeHtml(s.t)}</div><div class="desc">${escapeHtml(s.d)}</div></div>
+        <div class="sign-wrap">${s.svg()}</div>
+      </div>`;
+    });
+    body.innerHTML=html;
+    return;
+  }
+  // study mode: one official question at a time, with the correct answer revealed
+  chips.style.display="flex";
+  renderChips("learnChips", state.studyCat, cat=>{ stopAllAudio(); state.studyCat=cat; state.studyIndex=0; renderLearn(); });
+  const idx=catIndices(state.studyCat);
+  if(state.studyIndex>=idx.length) state.studyIndex=0;
+  const q=QUESTIONS[idx[state.studyIndex]];
+  const correct=q.o[q.c];
+  const speakStr=(q.q+". התשובה הנכונה: "+correct).replace(/"/g,"'");
+  body.innerHTML=`
+    <div class="meta-line">${state.studyIndex+1} מתוך ${idx.length} · ${CAT_LABELS[q.cat]} · שאלה רשמית ${q.id}</div>
+    <div class="card">
+      <button class="speak" onclick="narrateEl(this)" data-he="${escapeHtml(speakStr)}">🔊</button>
+      <div class="body">
+        <div class="desc">${escapeHtml(q.q)}</div>
+        ${q.img?`<img class="q-img" src="${q.img}" alt="תמונת השאלה" loading="lazy">`:""}
+        <div class="answer-label">התשובה הנכונה:</div>
+        <div class="answer-correct">${escapeHtml(correct)}</div>
+      </div>
+    </div>
+    <div class="nav-row">
+      <button onclick="studyStep(-1)" ${state.studyIndex===0?"disabled":""}>← הקודם</button>
+      <button onclick="studyStep(1)" ${state.studyIndex>=idx.length-1?"disabled":""}>הבא →</button>
+    </div>`;
+}
+function studyStep(d){
+  stopAllAudio();
+  const idx=catIndices(state.studyCat);
+  state.studyIndex=Math.min(Math.max(0,state.studyIndex+d), idx.length-1);
+  renderLearn();
+  window.scrollTo(0,0);
+}
+
+/* =====================================================================
+   PRACTICE
+   ===================================================================== */
+function startPractice(cat){
+  stopAllAudio();
+  state.practiceCat=cat;
+  state.pool=shuffle(catIndices(cat));
+  state.pIndex=0;
+  state.score=0;
+  renderQuiz();
+}
+
+function renderQuiz(){
+  renderChips("practiceChips", state.practiceCat, startPractice);
+  const q=QUESTIONS[state.pool[state.pIndex]];
+  state.answered=false;
+  document.getElementById("scoreBox").textContent="ניקוד: "+state.score+" מתוך "+(state.pIndex);
+  document.getElementById("qCounter").textContent="שאלה "+(state.pIndex+1)+" מתוך "+state.pool.length;
+  document.getElementById("qCategory").textContent=CAT_LABELS[q.cat];
+  document.getElementById("questionText").textContent=q.q;
+  document.getElementById("qSpeak").dataset.he=q.q;
+  document.getElementById("qImgWrap").innerHTML = q.img
+    ? `<img class="q-img" src="${q.img}" alt="תמונת השאלה" loading="lazy">` : "";
+  document.getElementById("feedback").textContent="";
+  document.getElementById("feedback").className="feedback";
+  const nb=document.getElementById("nextBtn"); nb.disabled=true;
+
+  const ol=document.getElementById("optionsList");
+  let html="";
+  q.o.forEach((opt,i)=>{
+    html+=`<button class="option" data-i="${i}" onclick="answer(${i})">
+      <span class="opt-text">${escapeHtml(opt)}</span>
+      <span class="opt-speak" onclick="event.stopPropagation();narrateEl(this)" data-he="${escapeHtml(opt.replace(/"/g,"'"))}">🔊</span>
+    </button>`;
+  });
+  ol.innerHTML=html;
+}
+
+function answer(i){
+  if(state.answered) return;
+  state.answered=true;
+  const q=QUESTIONS[state.pool[state.pIndex]];
+  document.querySelectorAll("#optionsList .option").forEach(b=>{
+    const bi=parseInt(b.dataset.i,10); b.disabled=true;
+    if(bi===q.c) b.classList.add("correct");
+    if(bi===i && i!==q.c) b.classList.add("wrong");
+  });
+  const fb=document.getElementById("feedback");
+  if(i===q.c){ state.score++; fb.textContent="נכון! כל הכבוד"; fb.className="feedback ok"; }
+  else { fb.textContent="לא נכון. התשובה הנכונה מסומנת בירוק"; fb.className="feedback no"; }
+  document.getElementById("scoreBox").textContent="ניקוד: "+state.score+" מתוך "+(state.pIndex+1);
+  document.getElementById("nextBtn").disabled=false;
+}
+
+function nextQuestion(){
+  stopAllAudio();
+  state.pIndex++;
+  if(state.pIndex>=state.pool.length){
+    // finished the pool -> reshuffle and restart
+    state.pool=shuffle(state.pool);
+    state.pIndex=0; state.score=0;
+  }
+  renderQuiz();
+  window.scrollTo(0,0);
+}
+
+/* =====================================================================
+   NAVIGATION & SETTINGS
+   ===================================================================== */
+function showView(name){
+  stopAllAudio();
+  ["learn","practice","settings"].forEach(v=>{
+    document.getElementById("view-"+v).classList.toggle("active", v===name);
+    document.getElementById("nav"+v.charAt(0).toUpperCase()+v.slice(1)).classList.toggle("active", v===name);
+  });
+  window.scrollTo(0,0);
+}
+function setLanguage(lang){
+  state.audioLang=lang; localStorage.setItem("audioLang",lang);
+  document.getElementById("langHe").classList.toggle("active", lang==="he");
+  document.getElementById("langAm").classList.toggle("active", lang==="am");
+}
+function setSpeed(s){
+  state.speed=s; localStorage.setItem("speed",s);
+  document.getElementById("speedSlow").classList.toggle("active", s==="slow");
+  document.getElementById("speedNormal").classList.toggle("active", s==="normal");
+}
+
+/* =====================================================================
+   INIT
+   ===================================================================== */
+function init(){
+  document.getElementById("langHe").classList.toggle("active", state.audioLang==="he");
+  document.getElementById("langAm").classList.toggle("active", state.audioLang==="am");
+  document.getElementById("speedSlow").classList.toggle("active", state.speed==="slow");
+  document.getElementById("speedNormal").classList.toggle("active", state.speed==="normal");
+  const withImg=QUESTIONS.filter(q=>q.img).length;
+  document.getElementById("aboutNote").innerHTML=
+    "<b>"+QUESTIONS.length+" שאלות רשמיות לרכב פרטי (B)</b> ממאגר משרד התחבורה (data.gov.il), כולל "+withImg+" שאלות עם תמונה רשמית. "+
+    "כל הכתב בעברית; כפתור 🔊 מקריא בעברית, ובבחירת אמהרית מקריא בתרגום אוטומטי (Google) — <b>תרגום אוטומטי שאינו רשמי ועלול לטעות</b>. "+
+    "התמונות הרשמיות מוגשות מארכיון האינטרנט (web.archive.org) מאחר ששרת התמונות המקורי הושבת. ההקראה האמהרית והתמונות דורשות חיבור לאינטרנט.";
+
+  if(QUESTIONS.length===0){
+    document.getElementById("learnBody").innerHTML='<div class="note">שגיאה: קובץ השאלות לא נטען.</div>';
+    return;
+  }
+  setLearnMode("study");
+  startPractice("all");
+}
 init();
-if("serviceWorker" in navigator){addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}))}
+
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>{ navigator.serviceWorker.register("sw.js").catch(()=>{}); });
+}
 </script>
-<script src="amharic-preload.js"></script>
 </body>
 </html>
