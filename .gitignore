@@ -1,0 +1,4 @@
+.claude/
+
+# build source / scratch (not needed for deploy)
+official_source_tqhe.xml

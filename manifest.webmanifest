@@ -1,0 +1,16 @@
+{
+  "name": "לימוד תאוריה לנהיגה | የመንዳት ቲዎሪ",
+  "short_name": "תאוריה",
+  "description": "Study and practice the Israeli driving theory exam in Hebrew and Amharic with audio narration.",
+  "start_url": "index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b1f3a",
+  "theme_color": "#0b1f3a",
+  "lang": "he",
+  "dir": "rtl",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
