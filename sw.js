@@ -1,6 +1,6 @@
 /* Service worker: cache app shell so it works offline once installed.
    Amharic TTS still needs internet (Google Translate endpoint). */
-const CACHE = "theory-app-v4";
+const CACHE = "theory-app-v5";
 const ASSETS = [
   "./",
   "index.html",

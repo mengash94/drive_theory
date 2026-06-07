@@ -101,6 +101,13 @@
   .option .opt-text{flex:1;}
   .option.correct{background:var(--green); border-color:#fff; color:#fff;}
   .option.wrong{background:var(--red); border-color:#fff; color:#fff;}
+  .option.selected{background:#2f5aa0; border-color:#fff;}
+  .exam-result{text-align:center; padding:20px; border-radius:18px; margin-bottom:18px; border:3px solid #fff;}
+  .exam-result.pass{background:var(--green); color:#fff;}
+  .exam-result.fail{background:var(--red); color:#fff;}
+  .exam-result .big{font-size:40px; margin:6px 0;}
+  .start-btn{width:100%; min-height:84px; border:none; border-radius:18px; background:var(--accent);
+    color:#000; font-size:26px; font-weight:900; cursor:pointer; margin-top:8px;}
   .option:disabled{cursor:default;}
   .option .opt-speak{
     flex:none; width:52px; height:52px; border-radius:12px; border:none;
@@ -197,11 +204,29 @@
     </div>
     <div class="note" id="aboutNote"></div>
   </section>
+
+  <!-- EXAM -->
+  <section id="view-exam" class="view">
+    <h2 class="section-title">מבחן רשמי</h2>
+    <div id="examIntro"></div>
+    <div id="examRun" style="display:none">
+      <div class="quiz-meta"><span id="exCounter"></span><span id="exCat"></span></div>
+      <div class="question-card">
+        <button class="speak" id="exSpeak" onclick="narrateEl(this)">🔊</button>
+        <div class="qtext" id="exQText"></div>
+      </div>
+      <div id="exImgWrap"></div>
+      <div id="exOptions"></div>
+      <button class="next-btn" id="exNext" onclick="examNext()" disabled>הבא</button>
+    </div>
+    <div id="examResult" style="display:none"></div>
+  </section>
 </main>
 
 <nav class="bottom">
   <button id="navLearn" class="active" onclick="showView('learn')"><span class="ico">📖</span><span>לימוד</span></button>
   <button id="navPractice" onclick="showView('practice')"><span class="ico">✏️</span><span>תרגול</span></button>
+  <button id="navExam" onclick="showView('exam')"><span class="ico">📝</span><span>מבחן</span></button>
   <button id="navSettings" onclick="showView('settings')"><span class="ico">⚙️</span><span>הגדרות</span></button>
 </nav>
 
@@ -260,6 +285,7 @@ const SIGNS = [
 let state = {
   audioLang: localStorage.getItem("audioLang") || "he",
   speed: localStorage.getItem("speed") || "normal",
+  view: "learn",
   learnMode: "study",
   studyCat: "all",
   studyIndex: 0,
@@ -267,8 +293,31 @@ let state = {
   pool: [],        // array of question indices (shuffled) for current practice category
   pIndex: 0,
   answered: false,
-  score: 0
+  score: 0,
+  // exam
+  examPool: [],    // 30 question indices
+  examIdx: 0,
+  examPicks: [],   // chosen option index per exam question (-1 = none)
+  examActive: false
 };
+
+/* Persist learning progress so the user resumes where they left off */
+const PROG_KEY = "progressV2";
+let progTimer=null;
+function saveProgress(){
+  clearTimeout(progTimer);
+  progTimer=setTimeout(()=>{
+    try{ localStorage.setItem(PROG_KEY, JSON.stringify({
+      view:state.view, learnMode:state.learnMode,
+      studyCat:state.studyCat, studyIndex:state.studyIndex,
+      practiceCat:state.practiceCat, pool:state.pool, pIndex:state.pIndex, score:state.score,
+      examPool:state.examPool, examIdx:state.examIdx, examPicks:state.examPicks, examActive:state.examActive
+    })); }catch(e){}
+  },400);
+}
+function loadProgress(){
+  try{ return JSON.parse(localStorage.getItem(PROG_KEY)); }catch(e){ return null; }
+}
 
 /* =====================================================================
    AUDIO ENGINE  (Hebrew = Web Speech, Amharic = translate + Google TTS)
@@ -355,6 +404,14 @@ function narrateEl(el){ narrate(el.dataset.he, el); }
    HELPERS
    ===================================================================== */
 function escapeHtml(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+/* Official question image, with an automatic fallback to the nearest archive
+   snapshot if the exact one ever fails to load. */
+function imgTag(q){
+  if(!q || !q.img) return "";
+  const fb = q.img.replace(/\/web\/\d+id_/, "/web/2id_");
+  return `<img class="q-img" src="${q.img}" alt="תמונת השאלה" loading="lazy" `+
+         `onerror="if(this.dataset.fb!=='1'){this.dataset.fb='1';this.src='${fb}';}">`;
+}
 function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function catIndices(cat){
   const idx=[];
@@ -409,7 +466,7 @@ function renderLearn(){
   }
   // study mode: one official question at a time, with the correct answer revealed
   chips.style.display="flex";
-  renderChips("learnChips", state.studyCat, cat=>{ stopAllAudio(); state.studyCat=cat; state.studyIndex=0; renderLearn(); });
+  renderChips("learnChips", state.studyCat, cat=>{ stopAllAudio(); state.studyCat=cat; state.studyIndex=0; renderLearn(); saveProgress(); });
   const idx=catIndices(state.studyCat);
   if(state.studyIndex>=idx.length) state.studyIndex=0;
   const q=QUESTIONS[idx[state.studyIndex]];
@@ -421,7 +478,7 @@ function renderLearn(){
       <button class="speak" onclick="narrateEl(this)" data-he="${escapeHtml(speakStr)}">🔊</button>
       <div class="body">
         <div class="desc">${escapeHtml(q.q)}</div>
-        ${q.img?`<img class="q-img" src="${q.img}" alt="תמונת השאלה" loading="lazy">`:""}
+        ${imgTag(q)}
         <div class="answer-label">התשובה הנכונה:</div>
         <div class="answer-correct">${escapeHtml(correct)}</div>
       </div>
@@ -436,6 +493,7 @@ function studyStep(d){
   const idx=catIndices(state.studyCat);
   state.studyIndex=Math.min(Math.max(0,state.studyIndex+d), idx.length-1);
   renderLearn();
+  saveProgress();
   window.scrollTo(0,0);
 }
 
@@ -449,6 +507,7 @@ function startPractice(cat){
   state.pIndex=0;
   state.score=0;
   renderQuiz();
+  saveProgress();
 }
 
 function renderQuiz(){
@@ -460,8 +519,7 @@ function renderQuiz(){
   document.getElementById("qCategory").textContent=CAT_LABELS[q.cat];
   document.getElementById("questionText").textContent=q.q;
   document.getElementById("qSpeak").dataset.he=q.q;
-  document.getElementById("qImgWrap").innerHTML = q.img
-    ? `<img class="q-img" src="${q.img}" alt="תמונת השאלה" loading="lazy">` : "";
+  document.getElementById("qImgWrap").innerHTML = imgTag(q);
   document.getElementById("feedback").textContent="";
   document.getElementById("feedback").className="feedback";
   const nb=document.getElementById("nextBtn"); nb.disabled=true;
@@ -491,6 +549,7 @@ function answer(i){
   else { fb.textContent="לא נכון. התשובה הנכונה מסומנת בירוק"; fb.className="feedback no"; }
   document.getElementById("scoreBox").textContent="ניקוד: "+state.score+" מתוך "+(state.pIndex+1);
   document.getElementById("nextBtn").disabled=false;
+  saveProgress();
 }
 
 function nextQuestion(){
@@ -510,10 +569,119 @@ function nextQuestion(){
    ===================================================================== */
 function showView(name){
   stopAllAudio();
-  ["learn","practice","settings"].forEach(v=>{
+  state.view=name;
+  ["learn","practice","exam","settings"].forEach(v=>{
     document.getElementById("view-"+v).classList.toggle("active", v===name);
     document.getElementById("nav"+v.charAt(0).toUpperCase()+v.slice(1)).classList.toggle("active", v===name);
   });
+  if(name==="exam") renderExamView();
+  saveProgress();
+  window.scrollTo(0,0);
+}
+
+/* =====================================================================
+   EXAM  (official format: 30 random questions, pass = 26 correct)
+   ===================================================================== */
+const EXAM_SIZE=30, EXAM_PASS=26;
+function renderExamView(){
+  const intro=document.getElementById("examIntro");
+  const run=document.getElementById("examRun");
+  const res=document.getElementById("examResult");
+  if(state.examActive){
+    intro.style.display="none"; res.style.display="none"; run.style.display="block";
+    renderExam();
+  } else {
+    run.style.display="none"; res.style.display="none"; intro.style.display="block";
+    intro.innerHTML=`<div class="note">מבחן רשמי בדומה למבחן התאוריה: <b>${EXAM_SIZE} שאלות אקראיות</b> לרכב פרטי.
+      כדי לעבור צריך <b>${EXAM_PASS} תשובות נכונות לפחות</b>. בסוף תקבל ציון ותוכל לסקור את הטעויות.</div>
+      <button class="start-btn" onclick="startExam()">התחל מבחן חדש</button>`;
+  }
+}
+function startExam(){
+  stopAllAudio();
+  state.examPool=shuffle(catIndices("all")).slice(0,EXAM_SIZE);
+  state.examIdx=0;
+  state.examPicks=new Array(EXAM_SIZE).fill(-1);
+  state.examActive=true;
+  document.getElementById("examIntro").style.display="none";
+  document.getElementById("examResult").style.display="none";
+  document.getElementById("examRun").style.display="block";
+  renderExam();
+  saveProgress();
+  window.scrollTo(0,0);
+}
+function renderExam(){
+  const q=QUESTIONS[state.examPool[state.examIdx]];
+  document.getElementById("exCounter").textContent="שאלה "+(state.examIdx+1)+" מתוך "+EXAM_SIZE;
+  document.getElementById("exCat").textContent=CAT_LABELS[q.cat];
+  document.getElementById("exQText").textContent=q.q;
+  document.getElementById("exSpeak").dataset.he=q.q;
+  document.getElementById("exImgWrap").innerHTML=imgTag(q);
+  const picked=state.examPicks[state.examIdx];
+  const ol=document.getElementById("exOptions");
+  let html="";
+  q.o.forEach((opt,i)=>{
+    html+=`<button class="option ${picked===i?"selected":""}" data-i="${i}" onclick="examPick(${i})">
+      <span class="opt-text">${escapeHtml(opt)}</span>
+      <span class="opt-speak" onclick="event.stopPropagation();narrateEl(this)" data-he="${escapeHtml(opt.replace(/"/g,"'"))}">🔊</span>
+    </button>`;
+  });
+  ol.innerHTML=html;
+  const nb=document.getElementById("exNext");
+  nb.disabled = picked<0;
+  nb.textContent = state.examIdx>=EXAM_SIZE-1 ? "סיים מבחן" : "הבא";
+}
+function examPick(i){
+  state.examPicks[state.examIdx]=i;
+  document.querySelectorAll("#exOptions .option").forEach(b=>{
+    b.classList.toggle("selected", parseInt(b.dataset.i,10)===i);
+  });
+  document.getElementById("exNext").disabled=false;
+  saveProgress();
+}
+function examNext(){
+  stopAllAudio();
+  if(state.examIdx<EXAM_SIZE-1){ state.examIdx++; renderExam(); window.scrollTo(0,0); saveProgress(); }
+  else finishExam();
+}
+function finishExam(){
+  stopAllAudio();
+  let correct=0; const wrong=[];
+  state.examPool.forEach((qi,k)=>{
+    const q=QUESTIONS[qi];
+    if(state.examPicks[k]===q.c) correct++;
+    else wrong.push({q, picked:state.examPicks[k]});
+  });
+  const pass = correct>=EXAM_PASS;
+  state.examActive=false; saveProgress();
+  document.getElementById("examRun").style.display="none";
+  const res=document.getElementById("examResult");
+  res.style.display="block";
+  let html=`<div class="exam-result ${pass?"pass":"fail"}">
+      <div>${pass?"עברת! 🎉":"לא עברת"}</div>
+      <div class="big">${correct} / ${EXAM_SIZE}</div>
+      <div>${pass?"כל הכבוד":("צריך "+EXAM_PASS+" נכונות לפחות")}</div>
+    </div>
+    <button class="start-btn" onclick="startExam()">מבחן חדש</button>`;
+  if(wrong.length){
+    html+=`<div class="answer-label" style="margin-top:18px;font-size:20px;">הטעויות שלך (${wrong.length}):</div>`;
+    wrong.forEach(w=>{
+      const yours = w.picked>=0 ? w.q.o[w.picked] : "לא נענתה";
+      const speakStr=(w.q.q+". התשובה הנכונה: "+w.q.o[w.q.c]).replace(/"/g,"'");
+      html+=`<div class="card">
+        <button class="speak" onclick="narrateEl(this)" data-he="${escapeHtml(speakStr)}">🔊</button>
+        <div class="body">
+          <div class="desc">${escapeHtml(w.q.q)}</div>
+          ${imgTag(w.q)}
+          <div class="answer-label">התשובה שלך:</div>
+          <div class="answer-correct" style="background:var(--red);">${escapeHtml(yours)}</div>
+          <div class="answer-label">התשובה הנכונה:</div>
+          <div class="answer-correct">${escapeHtml(w.q.o[w.q.c])}</div>
+        </div>
+      </div>`;
+    });
+  }
+  res.innerHTML=html;
   window.scrollTo(0,0);
 }
 function setLanguage(lang){
@@ -545,8 +713,28 @@ function init(){
     document.getElementById("learnBody").innerHTML='<div class="note">שגיאה: קובץ השאלות לא נטען.</div>';
     return;
   }
-  setLearnMode("study");
-  startPractice("all");
+
+  // restore where the user left off
+  const p=loadProgress();
+  if(p){
+    state.learnMode = p.learnMode==="signs" ? "signs" : "study";
+    state.studyCat  = p.studyCat || "all";
+    state.studyIndex= p.studyIndex || 0;
+    state.practiceCat = p.practiceCat || "all";
+    state.examPool  = Array.isArray(p.examPool)? p.examPool : [];
+    state.examIdx   = p.examIdx || 0;
+    state.examPicks = Array.isArray(p.examPicks)? p.examPicks : [];
+    state.examActive= !!p.examActive && state.examPool.length===EXAM_SIZE;
+    if(Array.isArray(p.pool) && p.pool.length){ state.pool=p.pool; state.pIndex=p.pIndex||0; state.score=p.score||0; }
+    else { state.pool=shuffle(catIndices(state.practiceCat)); state.pIndex=0; state.score=0; }
+    setLearnMode(state.learnMode);
+    renderQuiz();
+    const v = ["learn","practice","exam","settings"].includes(p.view) ? p.view : "learn";
+    showView(v);
+  } else {
+    setLearnMode("study");
+    startPractice("all");
+  }
 }
 init();
 
